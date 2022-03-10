@@ -1,0 +1,53 @@
+# Default - https://github.com/AdaptiveConsulting/nexus-casc-plugin/blob/master/docker-compose.yml
+---
+# Useful for local debugging of the scripts.
+version: '3.8'
+
+secrets:
+  password_johndoe:
+    file: ./files/password_johndoe
+  gpg_key_example:
+    file: ./files/gpg-example.key
+  gpg_passphrase_example:
+    file: ./files/gpg-example.passphrase
+
+services:
+  nexus:
+    image: 'barisgece/nexus3-docker-casc:${NEXUS_DOCKER_VERSION}'
+    container_name: 'nexus_casc'
+    tty: true
+    user: 'nexus'
+    environment:
+      BASE_URL: 'http://localhost:8081'
+      NEXUS_SECURITY_RANDOMPASSWORD: 'false'
+      NEXUS_CASC_CONFIG: '/opt/nexus.yml'
+      # NEXUS_CASC_CONFIG: '/nexus-data/casc/nexus.yml'
+      # INSTALL4J_ADD_VM_PARAMS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+      INSTALL4J_ADD_VM_PARAMS: "-Xms4703m -Xmx4703m -XX:MaxDirectMemorySize=4703m"
+    networks:
+      - 'nexus'
+    ports:
+      # - '5005:5005'
+      - '${NEXUS_UI_PORT}:8081'
+      # - '18090:18090'
+      # - '18091:18091'
+    expose:
+      - '${NEXUS_UI_PORT}'
+    secrets:
+      - password_johndoe
+      - gpg_key_example
+      - gpg_passphrase_example
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - './nexus.yml:/opt/nexus.yml:ro'
+#     - './nexus-casc-plugin-${PLUGIN_VERSION}-bundle.kar:/opt/sonatype/nexus/deploy/nexus-casc-plugin-${PLUGIN_VERSION}-bundle.kar:ro'
+      - 'nexus-data:/nexus-data'
+
+volumes:
+  nexus-data:
+
+networks:
+  nexus:
