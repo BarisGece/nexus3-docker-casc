@@ -1,0 +1,182 @@
+# https://github.com/AdaptiveConsulting/nexus-casc-plugin/blob/master/default-nexus.yml
+---
+core:
+  baseUrl: ${BASE_URL:""}
+  userAgentCustomization: "CasC test"
+  connectionTimeout: 60
+  connectionRetryAttempts: 10
+  #httpProxy:
+  #  host: proxy.internal.lan
+  #  port: 3128
+  #  username: nexus-user
+  #  password: ${PROXY_PASSWORD}
+  #httpsProxy:
+  #  host: proxy.internal.lan
+  #  port: 3128
+  #  username: nexus-user
+  #  password: ${PROXY_PASSWORD}
+  #  ntlmHost: dc.internal.lan
+  #  ntlmDomain: internal.lan
+  #nonProxyHosts:
+  #  - host1.internal.lan
+  #  - host2.internal.lan
+capabilities:
+  - type: analytics-configuration
+    enabled: true
+  - type: log4j-visualizer
+    enabled: true
+  - type: OutreachManagementCapability
+    enabled: false
+security:
+  anonymousAccess: true
+  pruneUsers: true
+  realms:
+    - name: "DockerToken"
+      enabled: false
+    - name: "NpmToken"
+      enabled: false
+    - name: "NuGetApiKey"
+      enabled: false
+  roles:
+    - id: ui-minimal
+      enabled: true
+      source: default
+      name: ui-minimal
+      description: "UI Minimal"
+      privileges:
+        - nx-healthcheck-read
+        - nx-search-read
+    - id: repository-read-all
+      enabled: true
+      source: default
+      name: repository-read-all
+      description: "Read All permission for repositories"
+      privileges:
+        - nx-apikey-all
+        - nx-repository-view-*-*-browse
+        - nx-repository-view-*-*-read
+    - id: repository-write-all
+      enabled: true
+      source: default
+      name: repository-write-all
+      description: "Write All permission for repositories"
+      privileges:
+        - nx-apikey-all
+        - nx-repository-view-*-*-*
+  users:
+    - username: anonymous
+      firstName: Anonymous
+      lastName: User
+      password: anonymous
+      updateExistingPassword: false
+      email: anonymous@example.org
+      roles:
+        - source: "default"
+          role: ui-minimal
+    - username: johndoe
+      firstName: John
+      lastName: Doe
+      password: ${file:/run/secrets/password_johndoe}
+      updateExistingPassword: true
+      email: johndoe@example.org
+      roles:
+        - source: "default"
+          role: nx-admin
+    - username: janedoe
+      firstName: Jane
+      lastName: Doe
+      password: changeme
+      updateExistingPassword: false
+      email: janedoe@example.org
+      roles:
+        - source: "default"
+          role: ui-minimal
+        - source: "default"
+          role: repository-write-all
+repository:
+  pruneBlobStores: true
+  blobStores:
+    - name: maven
+      type: File
+      attributes:
+        file:
+          path: maven
+        blobStoreQuotaConfig:
+          quotaLimitBytes: 10240000000
+          quotaType: spaceUsedQuota
+    - name: raw
+      type: File
+      attributes:
+        file:
+          path: raw
+        blobStoreQuotaConfig:
+          quotaLimitBytes: 10240000000
+          quotaType: spaceUsedQuota
+  pruneCleanupPolicies: true
+  cleanupPolicies:
+    - name: cleanup-maven-proxy
+      format: maven2
+      notes: ''
+      criteria:
+        lastDownloaded: 864000
+  pruneRepositories: true
+  repositories:
+    - name: maven-snapshots
+      online: true
+      recipeName: maven2-hosted
+      attributes:
+        maven:
+          versionPolicy: SNAPSHOT
+          layoutPolicy: STRICT
+        storage:
+          writePolicy: ALLOW
+          strictContentTypeValidation: true
+          blobStoreName: maven
+    - name: maven-releases
+      online: true
+      recipeName: maven2-hosted
+      attributes:
+        maven:
+          versionPolicy: RELEASE
+          layoutPolicy: STRICT
+        storage:
+          writePolicy: ALLOW_ONCE
+          strictContentTypeValidation: true
+          blobStoreName: maven
+    - name: maven-central
+      online: true
+      recipeName: maven2-proxy
+      attributes:
+        proxy:
+          contentMaxAge: -1
+          remoteUrl: https://repo1.maven.org/maven2/
+          metadataMaxAge: 1440
+        negativeCache:
+          timeToLive: 1440
+          enabled: true
+        storage:
+          strictContentTypeValidation: false
+          blobStoreName: maven
+        httpclient:
+          connection:
+            blocked: false
+            autoBlock: true
+        maven:
+          versionPolicy: RELEASE
+          layoutPolicy: PERMISSIVE
+        cleanup:
+          policyName:
+            - cleanup-maven-proxy
+    - name: maven
+      online: true
+      recipeName: maven2-group
+      attributes:
+        maven:
+          versionPolicy: MIXED
+        group:
+          memberNames:
+            - "maven-snapshots"
+            - "maven-releases"
+            - "maven-central"
+        storage:
+          blobStoreName: maven
