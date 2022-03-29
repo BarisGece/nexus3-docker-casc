@@ -15,6 +15,7 @@ services:
   nexus:
     image: 'barisgece/nexus3-docker-casc:${NEXUS_DOCKER_VERSION}'
     container_name: 'nexus_casc'
+    restart: always
     tty: true
     user: 'nexus'
     environment:
