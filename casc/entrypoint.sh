@@ -9,4 +9,4 @@
 #aws s3api get-object --bucket ABC-nexus-casc-files --key nexus.yml /nexus-data/casc/nexus.yml
 
 cd /opt/sonatype
-exec ./start-nexus-repository-manager.sh
+exec /opt/sonatype/nexus/bin/nexus run
